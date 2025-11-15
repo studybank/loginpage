@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyBank - Login System</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; background: #e8f5e9; padding: 20px; }
+    .card { background: white; padding: 20px; border-radius: 10px; width: 350px; margin: auto; box-shadow: 0 0 10px #ccc; }
+    h2 { text-align: center; }
+    input { width: 100%; padding: 10px; margin: 8px 0; }
+    button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .link { text-align: center; margin-top: 10px; font-size: 14px; }
+    .link a { color: blue; cursor: pointer; }
+    #dashboard, #uploadPage { display: none; }
+  </style>
+</head>
+
+<body>
+
+<!-- SIGNUP PAGE -->
+<div class="card" id="signupPage">
+  <h2>Create Account</h2>
+  <input type="email" id="signupEmail" placeholder="Enter Email" />
+  <input type="password" id="signupPassword" placeholder="Enter Password" />
+  <button onclick="signup()">Signup</button>
+  <p class="link">Already have an account? <a onclick="showLogin()">Login</a></p>
+</div>
+
+<!-- LOGIN PAGE -->
+<div class="card" id="loginPage" style="display:none;">
+  <h2>Login</h2>
+  <input type="email" id="loginEmail" placeholder="Enter Email" />
+  <input type="password" id="loginPassword" placeholder="Enter Password" />
+  <button onclick="login()">Login</button>
+  <p class="link">Don't have an account? <a onclick="showSignup()">Signup</a></p>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div class="card" id="dashboard">
+  <h2>User Dashboard</h2>
+  <p id="userEmail"></p>
+  <button onclick="showUpload()">Upload File</button>
+  <button onclick="logout()" style="background:red;">Logout</button>
+</div>
+
+<!-- FILE UPLOAD PAGE -->
+<div class="card" id="uploadPage">
+  <h2>Upload File</h2>
+  <input type="file" id="fileInput" />
+  <button onclick="uploadFile()">Upload</button>
+  <p id="uploadStatus"></p>
+  <button onclick="showDashboard()">Back</button>
+</div>
+
+<!-- Firebase Libraries -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
+
+<script>
+// --------------------------------------
+//  ✔ Your Firebase Config (Corrected)
+// --------------------------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyCQbBPXrx-Q3YY8lODP4aoB7-J5fh0amtE",
+  authDomain: "studybank-beckend.firebaseapp.com",
+  projectId: "studybank-beckend",
+  storageBucket: "studybank-beckend.appspot.com",
+  messagingSenderId: "720223437176",
+  appId: "1:720223437176:web:2822f07a4a5aee6e99488d",
+  measurementId: "G-QT840H5BFB"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const storage = firebase.storage();
+
+// --------------------------------------
+// Page Navigation Functions
+// --------------------------------------
+function showSignup(){ signupPage.style.display="block"; loginPage.style.display="none"; }
+function showLogin(){ signupPage.style.display="none"; loginPage.style.display="block"; }
+function showDashboard(){ dashboard.style.display="block"; uploadPage.style.display="none"; signupPage.style.display="none"; loginPage.style.display="none"; }
+function showUpload(){ dashboard.style.display="none"; uploadPage.style.display="block"; }
+
+// --------------------------------------
+// Signup Function
+// --------------------------------------
+function signup(){
+  const email = signupEmail.value;
+  const pass = signupPassword.value;
+
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(()=>{
+      alert("Account Created Successfully!");
+      userEmail.innerHTML = "Logged in: " + email;
+      showDashboard();
+    })
+    .catch(err => alert(err.message));
+}
+
+// --------------------------------------
+// Login Function
+// --------------------------------------
+function login(){
+  const email = loginEmail.value;
+  const pass = loginPassword.value;
+
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(()=>{
+      userEmail.innerHTML = "Logged in: " + email;
+      showDashboard();
+    })
+    .catch(err => alert(err.message));
+}
+
+// --------------------------------------
+// Logout Function
+// --------------------------------------
+function logout(){
+  auth.signOut().then(()=>{
+    showLogin();
+  });
+}
+
+// --------------------------------------
+// File Upload Function
+// --------------------------------------
+function uploadFile(){
+  const file = fileInput.files[0];
+  if(!file){ alert("Please choose a file first!"); return; }
+
+  const uid = auth.currentUser.uid;
+  const fileRef = storage.ref("uploads/" + uid + "/" + file.name);
+
+  fileRef.put(file)
+    .then(()=>{
+      uploadStatus.innerHTML = "File uploaded successfully!";
+    })
+    .catch(err => alert(err.message));
+}
+</script>
+
+</body>
+</html>
