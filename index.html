@@ -1,101 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Login | StudyBank</title>
-<style>
-body {
-  font-family: Arial;
-  background: #f2f2f2;
-  padding: 40px;
-}
-.container {
-  width: 350px;
-  margin: auto;
-  padding: 25px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 0 10px #ccc;
-}
-input {
-  width: 100%;
-  padding: 10px;
-  margin: 8px 0;
-}
-button {
-  width: 100%;
-  padding: 10px;
-  background: #007bff;
-  color: white;
-  border: none;
-  margin-top: 10px;
-  cursor: pointer;
-}
-button:hover {
-  background: #0056b3;
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyBank - Admin Login System</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; background: #e8f5e9; padding: 20px; }
+    .card { background: white; padding: 20px; border-radius: 10px; width: 380px; margin: auto; box-shadow: 0 0 10px #ccc; }
+    h2 { text-align: center; }
+    input { width: 100%; padding: 10px; margin: 8px 0; }
+    button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    #dashboard, #uploadPage, #adminPanel { display: none; }
+    table { width:100%; border-collapse: collapse; margin-top:10px; }
+    th, td { border:1px solid #888; padding:8px; text-align:left; }
+    th { background:#d3d3d3; }
+    a { color: blue; }
+  </style>
 </head>
+
 <body>
 
-<div class="container">
-  <h2>Login</h2>
-
-  <input type="email" id="email" placeholder="Enter Email">
-  <input type="password" id="password" placeholder="Enter Password">
-  <button onclick="login()">Login</button>
-
-  <p id="msg" style="color:red;"></p>
+<!-- SIGNUP PAGE -->
+<div class="card" id="signupPage">
+  <h2>Create Account</h2>
+  <input type="email" id="signupEmail" placeholder="Enter Email" />
+  <input type="password" id="signupPassword" placeholder="Enter Password" />
+  <button onclick="signup()">Signup</button>
+  <p style="text-align:center">Already have an account? <a onclick="showLogin()">Login</a></p>
 </div>
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+<!-- LOGIN PAGE -->
+<div class="card" id="loginPage" style="display:none;">
+  <h2>Login</h2>
+  <input type="email" id="loginEmail" placeholder="Enter Email" />
+  <input type="password" id="loginPassword" placeholder="Enter Password" />
+  <button onclick="login()">Login</button>
+  <p style="text-align:center">No account? <a onclick="showSignup()">Signup</a></p>
+</div>
 
-// ---------------------
-// 🔥 Your Firebase Config
-// ---------------------
+<!-- USER DASHBOARD -->
+<div class="card" id="dashboard">
+  <h2>User Dashboard</h2>
+  <p id="userEmail"></p>
+  <button onclick="showUpload()">Upload File</button>
+  <button onclick="logout()" style="background:red;">Logout</button>
+</div>
+
+<!-- FILE UPLOAD PAGE -->
+<div class="card" id="uploadPage">
+  <h2>Upload File</h2>
+  <input type="file" id="fileInput" />
+  <button onclick="uploadFile()">Upload</button>
+  <p id="uploadStatus"></p>
+  <button onclick="showDashboard()">Back</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="card" id="adminPanel">
+  <h2>Admin Panel</h2>
+  <p><b>All Uploaded Files:</b></p>
+  <table>
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>File</th>
+        <th>Download</th>
+      </tr>
+    </thead>
+    <tbody id="fileList"></tbody>
+  </table>
+  <button onclick="logout()" style="background:red;margin-top:20px;">Logout</button>
+</div>
+
+<!-- Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
+
+<script>
+// -------------------------------
+//  YOUR FIREBASE CONFIG
+// -------------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyCQbBPXrx-Q3YY8lODP4aoB7-J5fh0amtE",
   authDomain: "studybank-beckend.firebaseapp.com",
   projectId: "studybank-beckend",
-  storageBucket: "studybank-beckend.firebasestorage.app",
+  storageBucket: "studybank-beckend.appspot.com",
   messagingSenderId: "720223437176",
   appId: "1:720223437176:web:2822f07a4a5aee6e99488d",
   measurementId: "G-QT840H5BFB"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+firebase.initializeApp(firebaseConfig);
 
-// ---------------------
-// 🔐 Admin Email
-// ---------------------
-const ADMIN_EMAIL = "admin@gmail.com";   // 👉 यहाँ अपना Admin email डालें
+const auth = firebase.auth();
+const storage = firebase.storage();
 
-// ---------------------
-// 🔑 Login Function
-// ---------------------
-window.login = function() {
-  const email = document.getElementById("email").value;
-  const pass = document.getElementById("password").value;
+// -------------------------------
+// ADMIN EMAIL SET HERE
+// -------------------------------
+const ADMIN_EMAIL = "skbonda.srb@gmail.com";  // ← इसे बदलें
 
-  signInWithEmailAndPassword(auth, email, pass)
-    .then((userCredential) => {
+// -------------------------------
+// PAGE NAVIGATION
+// -------------------------------
+function showSignup(){ signupPage.style.display="block"; loginPage.style.display="none"; }
+function showLogin(){ signupPage.style.display="none"; loginPage.style.display="block"; }
+function showDashboard(){ dashboard.style.display="block"; uploadPage.style.display="none"; adminPanel.style.display="none"; }
+function showUpload(){ dashboard.style.display="none"; uploadPage.style.display="block"; }
+function showAdminPanel(){ adminPanel.style.display="block"; dashboard.style.display="none"; uploadPage.style.display="none"; }
 
-      if (email === ADMIN_EMAIL) {
-        window.location.href = "admin-dashboard.html";   // 👉 Admin Page
+// -------------------------------
+// SIGNUP SYSTEM
+// -------------------------------
+function signup(){
+  auth.createUserWithEmailAndPassword(signupEmail.value, signupPassword.value)
+    .then(()=>{
+      alert("Account Created Successfully!");
+      showLogin();
+    })
+    .catch(err => alert(err.message));
+}
+
+// -------------------------------
+// LOGIN SYSTEM
+// -------------------------------
+function login(){
+  const email = loginEmail.value;
+  const pass = loginPassword.value;
+
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(()=>{
+
+      if(email === ADMIN_EMAIL){
+        loadAdminFiles();
+        showAdminPanel();
       } else {
-        window.location.href = "user-dashboard.html";    // 👉 User Page
+        userEmail.innerHTML = "Logged in: " + email;
+        showDashboard();
       }
 
     })
-    .catch((error) => {
-      document.getElementById("msg").innerText = error.message;
+    .catch(err => alert(err.message));
+}
+
+// -------------------------------
+// LOGOUT
+// -------------------------------
+function logout(){
+  auth.signOut().then(()=>{ showLogin(); });
+}
+
+// -------------------------------
+// USER FILE UPLOAD
+// -------------------------------
+function uploadFile(){
+  const file = fileInput.files[0];
+  if(!file){ alert("Choose a file first!"); return; }
+
+  const uid = auth.currentUser.uid;
+  const ref = storage.ref(`uploads/${uid}/${file.name}`);
+
+  ref.put(file)
+    .then(()=> uploadStatus.innerHTML = "Uploaded Successfully!")
+    .catch(err => alert(err.message));
+}
+
+// -------------------------------
+// ADMIN: FETCH ALL FILES
+// -------------------------------
+function loadAdminFiles(){
+  const fileList = document.getElementById("fileList");
+  fileList.innerHTML = "<tr><td colspan='3'>Loading...</td></tr>";
+
+  const rootRef = storage.ref("uploads/");
+
+  rootRef.listAll().then(users => {
+    fileList.innerHTML = "";
+
+    users.prefixes.forEach(userFolder => {
+      userFolder.listAll().then(files => {
+        files.items.forEach(fileRef => {
+
+          fileRef.getDownloadURL().then(url => {
+            const row = `
+              <tr>
+                <td>${userFolder.name}</td>
+                <td>${fileRef.name}</td>
+                <td><a href="${url}" target="_blank">Download</a></td>
+              </tr>
+            `;
+            fileList.innerHTML += row;
+          });
+
+        });
+      });
     });
-};
+
+  });
+}
 </script>
 
 </body>
