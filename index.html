@@ -1,207 +1,209 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StudyBank - Admin Login System</title>
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>StudyBank — Uploads</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #e8f5e9; padding: 20px; }
-    .card { background: white; padding: 20px; border-radius: 10px; width: 380px; margin: auto; box-shadow: 0 0 10px #ccc; }
-    h2 { text-align: center; }
-    input { width: 100%; padding: 10px; margin: 8px 0; }
-    button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    #dashboard, #uploadPage, #adminPanel { display: none; }
-    table { width:100%; border-collapse: collapse; margin-top:10px; }
-    th, td { border:1px solid #888; padding:8px; text-align:left; }
-    th { background:#d3d3d3; }
-    a { color: blue; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Poppins", Arial; margin: 0; padding: 20px; background:#f6f7fb; color:#111;}
+    header { display:flex; gap:16px; align-items:center; margin-bottom:18px; }
+    .profile { display:flex; gap:12px; align-items:center; }
+    .avatar { width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #ddd; }
+    button { padding:8px 12px; border-radius:8px; border: none; background:#2563eb; color:white; cursor:pointer; }
+    button.secondary { background:#6b7280; }
+    .container { max-width:900px; margin:0 auto; }
+    .card { background:white; padding:14px; border-radius:10px; box-shadow:0 6px 18px rgba(22, 28, 37, 0.06); margin-bottom:14px; }
+    .upload-row { display:flex; gap:8px; align-items:center; margin:12px 0; flex-wrap:wrap; }
+    input[type=file] { padding:6px; }
+    .uploads { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:12px; }
+    .upload-item { display:flex; gap:12px; align-items:flex-start; }
+    .media { max-width:240px; max-height:160px; border-radius:8px; object-fit:cover; }
+    .meta { flex:1; }
+    .small { font-size:0.9rem; color:#444; }
+    .msg { padding:8px; border-radius:8px; font-size:0.95rem; }
+    .success { background:#ecfdf5; color:#065f46; }
+    .error { background:#ffeeee; color:#9b1c1c; }
+    a.signout { margin-left:10px; font-size:0.9rem; color:#ef4444; text-decoration:underline; cursor:pointer; }
+    @media(min-width:700px){ .uploads { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
-
 <body>
+  <div class="container">
+    <header>
+      <div>
+        <h2>StudyBank — Upload Area</h2>
+        <div class="small">Google Sign-in के साथ फोटो और वीडियो upload करें — सभी users देख पाएंगे</div>
+      </div>
+      <div style="margin-left:auto" id="user-block"></div>
+    </header>
 
-<!-- SIGNUP PAGE -->
-<div class="card" id="signupPage">
-  <h2>Create Account</h2>
-  <input type="email" id="signupEmail" placeholder="Enter Email" />
-  <input type="password" id="signupPassword" placeholder="Enter Password" />
-  <button onclick="signup()">Signup</button>
-  <p style="text-align:center">Already have an account? <a onclick="showLogin()">Login</a></p>
-</div>
+    <div class="card">
+      <div id="status" class="msg" style="display:none;"></div>
 
-<!-- LOGIN PAGE -->
-<div class="card" id="loginPage" style="display:none;">
-  <h2>Login</h2>
-  <input type="email" id="loginEmail" placeholder="Enter Email" />
-  <input type="password" id="loginPassword" placeholder="Enter Password" />
-  <button onclick="login()">Login</button>
-  <p style="text-align:center">No account? <a onclick="showSignup()">Signup</a></p>
-</div>
+      <div id="auth-area">
+        <button id="btn-google">Sign in with Google</button>
+      </div>
 
-<!-- USER DASHBOARD -->
-<div class="card" id="dashboard">
-  <h2>User Dashboard</h2>
-  <p id="userEmail"></p>
-  <button onclick="showUpload()">Upload File</button>
-  <button onclick="logout()" style="background:red;">Logout</button>
-</div>
+      <div id="upload-area" style="display:none; margin-top:12px;">
+        <div class="small">Select photo (jpg/png) या video (mp4)। Max file size ~ 50MB</div>
+        <div class="upload-row">
+          <input id="file-input" type="file" accept="image/*,video/*" />
+          <input id="title" type="text" placeholder="File name (optional)" style="padding:8px; border-radius:8px; border:1px solid #ddd; flex:1;" />
+          <button id="btn-upload">Upload</button>
+        </div>
+      </div>
+    </div>
 
-<!-- FILE UPLOAD PAGE -->
-<div class="card" id="uploadPage">
-  <h2>Upload File</h2>
-  <input type="file" id="fileInput" />
-  <button onclick="uploadFile()">Upload</button>
-  <p id="uploadStatus"></p>
-  <button onclick="showDashboard()">Back</button>
-</div>
+    <section>
+      <h3>Recent Uploads</h3>
+      <div id="uploads" class="uploads"></div>
+    </section>
+  </div>
 
-<!-- ADMIN PANEL -->
-<div class="card" id="adminPanel">
-  <h2>Admin Panel</h2>
-  <p><b>All Uploaded Files:</b></p>
-  <table>
-    <thead>
-      <tr>
-        <th>User</th>
-        <th>File</th>
-        <th>Download</th>
-      </tr>
-    </thead>
-    <tbody id="fileList"></tbody>
-  </table>
-  <button onclick="logout()" style="background:red;margin-top:20px;">Logout</button>
-</div>
+  <!-- Firebase v9 modular (CDN) -->
+  <script type="module">
 
-<!-- Firebase Scripts -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCQbBPXrx-Q3YY8lODP4aoB7-J5fh0amtE",
+      authDomain: "studybank-beckend.firebaseapp.com",
+      projectId: "studybank-beckend",
+      storageBucket: "studybank-beckend.appspot.com",
+      messagingSenderId: "720223437176",
+      appId: "1:720223437176:web:2822f07a4a5aee6e99488d",
+      measurementId: "G-QT840H5BFB"
+    };
 
-<script>
-// -------------------------------
-//  YOUR FIREBASE CONFIG
-// -------------------------------
-const firebaseConfig = {
-  apiKey: "AIzaSyCQbBPXrx-Q3YY8lODP4aoB7-J5fh0amtE",
-  authDomain: "studybank-beckend.firebaseapp.com",
-  projectId: "studybank-beckend",
-  storageBucket: "studybank-beckend.appspot.com",
-  messagingSenderId: "720223437176",
-  appId: "1:720223437176:web:2822f07a4a5aee6e99488d",
-  measurementId: "G-QT840H5BFB"
-};
+    // imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-firebase.initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    const storage = getStorage(app);
+    const db = getFirestore(app);
 
-const auth = firebase.auth();
-const storage = firebase.storage();
+    const btnGoogle = document.getElementById('btn-google');
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-input');
+    const btnUpload = document.getElementById('btn-upload');
+    const uploadsEl = document.getElementById('uploads');
+    const statusEl = document.getElementById('status');
+    const userBlock = document.getElementById('user-block');
+    const titleInput = document.getElementById('title');
 
-// -------------------------------
-// ADMIN EMAIL SET HERE
-// -------------------------------
-const ADMIN_EMAIL = "skbonda.srb@gmail.com";  // ← इसे बदलें
+    function showStatus(message, type='') {
+      statusEl.style.display = 'block';
+      statusEl.textContent = message;
+      statusEl.className = 'msg ' + type;
+      setTimeout(()=> { statusEl.style.display = 'none'; }, 6000);
+    }
 
-// -------------------------------
-// PAGE NAVIGATION
-// -------------------------------
-function showSignup(){ signupPage.style.display="block"; loginPage.style.display="none"; }
-function showLogin(){ signupPage.style.display="none"; loginPage.style.display="block"; }
-function showDashboard(){ dashboard.style.display="block"; uploadPage.style.display="none"; adminPanel.style.display="none"; }
-function showUpload(){ dashboard.style.display="none"; uploadPage.style.display="block"; }
-function showAdminPanel(){ adminPanel.style.display="block"; dashboard.style.display="none"; uploadPage.style.display="none"; }
-
-// -------------------------------
-// SIGNUP SYSTEM
-// -------------------------------
-function signup(){
-  auth.createUserWithEmailAndPassword(signupEmail.value, signupPassword.value)
-    .then(()=>{
-      alert("Account Created Successfully!");
-      showLogin();
-    })
-    .catch(err => alert(err.message));
-}
-
-// -------------------------------
-// LOGIN SYSTEM
-// -------------------------------
-function login(){
-  const email = loginEmail.value;
-  const pass = loginPassword.value;
-
-  auth.signInWithEmailAndPassword(email, pass)
-    .then(()=>{
-
-      if(email === ADMIN_EMAIL){
-        loadAdminFiles();
-        showAdminPanel();
-      } else {
-        userEmail.innerHTML = "Logged in: " + email;
-        showDashboard();
+    btnGoogle.addEventListener('click', async () => {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        showStatus('Sign-in failed: ' + err.message, 'error');
       }
+    });
 
-    })
-    .catch(err => alert(err.message));
-}
+    function renderUser(user) {
+      if (!user) {
+        userBlock.innerHTML = '';
+        uploadArea.style.display = 'none';
+        return;
+      }
+      userBlock.innerHTML = `
+        <div class="profile">
+          <img src="${user.photoURL}" class="avatar" />
+          <div>
+            <div style="font-weight:600">${user.displayName}</div>
+            <div class="small">${user.email}</div>
+            <div><a id="signout" class="signout">Sign out</a></div>
+          </div>
+        </div>
+      `;
+      document.getElementById('signout').addEventListener('click', () => signOut(auth));
+      uploadArea.style.display = 'block';
+    }
 
-// -------------------------------
-// LOGOUT
-// -------------------------------
-function logout(){
-  auth.signOut().then(()=>{ showLogin(); });
-}
+    onAuthStateChanged(auth, user => renderUser(user));
 
-// -------------------------------
-// USER FILE UPLOAD
-// -------------------------------
-function uploadFile(){
-  const file = fileInput.files[0];
-  if(!file){ alert("Choose a file first!"); return; }
+    btnUpload.addEventListener('click', async () => {
+      const file = fileInput.files[0];
+      const user = auth.currentUser;
 
-  const uid = auth.currentUser.uid;
-  const ref = storage.ref(`uploads/${uid}/${file.name}`);
+      if (!user) return showStatus('पहले Google से sign-in करें', 'error');
+      if (!file) return showStatus('File चुनें', 'error');
 
-  ref.put(file)
-    .then(()=> uploadStatus.innerHTML = "Uploaded Successfully!")
-    .catch(err => alert(err.message));
-}
+      const safeName = Date.now() + "_" + file.name.replace(/[^a-z0-9.\-_]/gi,'_');
+      const path = `uploads/${user.uid}/${safeName}`;
+      const sRef = storageRef(storage, path);
 
-// -------------------------------
-// ADMIN: FETCH ALL FILES
-// -------------------------------
-function loadAdminFiles(){
-  const fileList = document.getElementById("fileList");
-  fileList.innerHTML = "<tr><td colspan='3'>Loading...</td></tr>";
+      const uploadTask = uploadBytesResumable(sRef, file);
+      showStatus('Uploading...');
 
-  const rootRef = storage.ref("uploads/");
-
-  rootRef.listAll().then(users => {
-    fileList.innerHTML = "";
-
-    users.prefixes.forEach(userFolder => {
-      userFolder.listAll().then(files => {
-        files.items.forEach(fileRef => {
-
-          fileRef.getDownloadURL().then(url => {
-            const row = `
-              <tr>
-                <td>${userFolder.name}</td>
-                <td>${fileRef.name}</td>
-                <td><a href="${url}" target="_blank">Download</a></td>
-              </tr>
-            `;
-            fileList.innerHTML += row;
+      uploadTask.on('state_changed', 
+        () => {},
+        (err) => showStatus('Upload failed: ' + err.message, 'error'),
+        async () => {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          
+          await addDoc(collection(db, 'uploads'), {
+            uid: user.uid,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            filename: titleInput.value.trim() || file.name,
+            storagePath: path,
+            downloadURL: url,
+            contentType: file.type,
+            size: file.size,
+            createdAt: serverTimestamp()
           });
 
-        });
+          fileInput.value = '';
+          titleInput.value = '';
+          showStatus('Upload successful!', 'success');
+        }
+      );
+    });
+
+    const q = query(collection(db, 'uploads'), orderBy('createdAt','desc'));
+    onSnapshot(q, (snap) => {
+      uploadsEl.innerHTML = '';
+      snap.forEach(doc => {
+        const data = doc.data();
+        let mediaHTML = '';
+
+        if (data.contentType.startsWith('image/')) {
+          mediaHTML = `<img src="${data.downloadURL}" class="media" />`;
+        } else if (data.contentType.startsWith('video/')) {
+          mediaHTML = `<video src="${data.downloadURL}" class="media" controls></video>`;
+        }
+
+        uploadsEl.innerHTML += `
+          <div class="card upload-item">
+            <div>${mediaHTML}</div>
+            <div class="meta">
+              <div style="display:flex; gap:10px; align-items:center;">
+                <img src="${data.photoURL}" class="avatar" style="width:38px;height:38px;" />
+                <div>
+                  <div style="font-weight:600">${data.displayName}</div>
+                  <div class="small">${data.filename}</div>
+                  <div class="small">${data.createdAt?.toDate?.().toLocaleString?.() || ''}</div>
+                </div>
+              </div>
+              <div class="small" style="margin-top:8px;">
+                <a href="${data.downloadURL}" target="_blank">Download / Open</a>
+              </div>
+            </div>
+          </div>
+        `;
       });
     });
 
-  });
-}
-</script>
-
+  </script>
 </body>
 </html>
